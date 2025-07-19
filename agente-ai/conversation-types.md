@@ -1,0 +1,195 @@
+## conversation types
+
+### Switch Conversation Types
+- Mode: Roles
+- Routing Rules
+```bash
+{{ $('Webhook').item.json.body.data.message.audioMessage }}
+is not equal to
+Rename Output = true
+Output Name = audioMessage
+***************************************************************
+{{ $json.body.data.message.extendedTextMessage }}
+is not equal to
+Rename Output = true
+Output Name = extendedTextMessage
+***************************************************************
+{{ $('Webhook').item.json.body.data.message.conversation }}
+exists
+Rename Output = true
+Output Name = conversation
+***************************************************************
+{{ $('Webhook').item.json.body.data.message.imageMessage }}
+is not equal to
+Rename Output = true
+Output Name = imageMessage
+***************************************************************
+{{ $('Webhook').item.json.body.data.messageType === 'documentMessage' }}
+is equal to
+true
+Rename Output = true
+Output Name = documentMessage
+***************************************************************
+Options
+Fallback Output = none (default)
+
+```
+
+### Audio Message 
+
+1. Áudio
+```bash
+HTTP Request
+Method = POST
+URL = {{ $('Normaliza').item.json.instance.Server_url }}/chat/getBase64FromMediaMessage/{{ $('Normaliza').item.json.instance.Name }}
+Authentication: none
+Send Headers = true
+  Specify Headers = using filds below
+  Header Parameters
+  Name = apikey
+  Value = {{ $('Normaliza').item.json.instance.Apikey }}
+Send Body = true
+  Body Content Type = JSON
+  Specify Body = using JSON
+# JSON 
+# {
+#   "message": {
+#     "key": {
+#         "id":  "{{ $('Normaliza').item.json.message.message_id }}",
+#     },
+#   },
+#   "convertToMp4": true,
+# } 
+```
+
+2. Converter Áudio1
+```bash
+Operation = Move Base64 String to File
+Base64 Input Field = base64
+Put Output File in Field = data
+Options
+  File Name = audio
+  MIME Type = {{ $json.mimetype }}
+```
+
+3. OpenAI3
+```bash
+Credential to connect with = OpenAi Api
+Resource = Audio
+Operation = Transcribe a Reacording
+Input Data Field Name = data
+Options none
+```
+
+### Texto Web
+
+1. Texto Web
+- Mode: Manual Mapping
+- Fields to Set
+```bash
+String: pergunta = Olá
+{{ $('Webhook').item.json.body.data.message.extendedTextMessage.text }}
+```
+- No Operation, do nothing1
+
+2. Filta Msg App
+- Mode: Manual Mapping
+- Fields to Set
+```bash
+String: telefone = 558399126797@s.whatsapp.net
+{{ $('Webhook').item.json.body.data.key.remoteJid }}
+***************************************************************
+String: mensagem = Olá
+{{ $('Webhook').item.json.body.data.message.conversation }}
+```
+- No Operation, do nothing1
+
+### Envio de Imagens
+
+```bash
+HTTP Request
+Method = POST
+URL = {{ $('Normaliza').item.json.instance.Server_url }}/chat/getBase64FromMediaMessage/{{ $('Normaliza').item.json.instance.Name }}
+Authentication: none
+Send Headers = true
+  Specify Headers = using filds below
+  Header Parameters
+  Name = apikey
+  Value = {{ $('Normaliza').item.json.instance.Apikey }}
+Send Body = true
+  Body Content Type = JSON
+  Specify Body = using JSON
+# JSON 
+# {
+#   "message": {
+#     "key": {
+#         "id":  "{{ $('Normaliza').item.json.message.message_id }}",
+#     },
+#   },
+#   "convertToMp4": true,
+# } 
+```
+
+2. Converter Imagem
+```bash
+Operation = Move Base64 String to File
+Base64 Input Field = base64
+Put Output File in Field = data
+Options
+  File Name = image
+```
+
+3. OpenAI3
+```bash
+Credential to connect with = OpenAi Api
+Resource = Image
+Operation = Analyse Imagem
+Model = GPT-4O-MINI
+Text Input = Descreva essa imagem, oque tem nela?
+Input Data Field Name = data
+Simplify Output = true
+Options none
+```
+
+### Envio de Envio de Documentos
+
+```bash
+HTTP Request
+Method = POST
+URL = {{ $('Normaliza').item.json.instance.Server_url }}/chat/getBase64FromMediaMessage/{{ $('Normaliza').item.json.instance.Name }}
+Authentication: none
+Send Headers = true
+  Specify Headers = using filds below
+  Header Parameters
+  Name = apikey
+  Value = {{ $('Normaliza').item.json.instance.Apikey }}
+Send Body = true
+  Body Content Type = JSON
+  Specify Body = using JSON
+# JSON 
+# {
+#   "message": {
+#     "key": {
+#         "id":  "{{ $('Normaliza').item.json.message.message_id }}",
+#     },
+#   },
+#   "convertToMp4": true,
+# } 
+```
+
+2. Converter Documentos
+```bash
+Operation = Move Base64 String to File
+Base64 Input Field = base64
+Put Output File in Field = data
+Options
+  File Name = image {{ $('Switch').item.json.body.data.message.documentMessage.fileName }}
+  MIME Type = {{ $('Switch').item.json.body.data.message.documentMessage.mimetype }}
+```
+
+3. Extract from File
+```bash
+Operation = Extaxt From PDF
+Input Data Field Name = data
+Options none
+```

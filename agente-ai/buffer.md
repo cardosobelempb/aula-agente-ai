@@ -1,0 +1,89 @@
+## buffer 
+### ✅ Resumo da Função do Buffer no n8n (no seu caso):
+Acumular várias mensagens em um único conteúdo estruturado, permitindo que a inteligência artificial (como GPT) analise o contexto completo e forneça uma resposta mais precisa e contextualizada.
+
+### 📌 Como isso funciona na prática:
+1. Mensagens individuais chegam ao fluxo (ex: de um chatbot, e-mail, webhook etc.).
+2. O nó de buffer (ou uma função personalizada com Set ou Function) armazena e concatena essas mensagens.
+3. Quando o contexto está completo (ex: número X de mensagens, ou um trigger final), o conteúdo acumulado é enviado para a IA processar de uma vez só.
+4. A IA responde com base em todo o histórico, e não apenas na última mensagem.
+
+***************************************************************
+
+1. Redis3 adiciona os dados
+- Credential to connect with: Redis Api
+- Operation: GET
+- Name: push
+
+```bash
+fx: List = 558399126797_buffer
+{{ $('Normaliza').item.json.message.chat_id }}_buffer
+***************************************************************
+Data = {"message":"Olá","timestamp":"2025-07-19T09:34:17.157-03:00","message_id":"3A29B1638B86BC6E7422"}
+{{ JSON.stringify({   "message": $('Normaliza').item.json.message.content,   "timestamp": $now,   "message_id": $('Normaliza').item.json.message.message_id }) }}
+```
+
+2. Redis1 pega os dados transformados
+- Credential to connect with: Redis Api
+- Operation: GET
+
+```bash
+Name = messages
+fx: Key = 558399126797__buffer
+{{ $('Normaliza').item.json.message.chat_id.toString() }}_buffer
+***************************************************************
+Key Type: Automatic
+```
+
+3. Switch3 pega os dados
+- Mode: Roles
+- Routing Rules
+```bash
+{{ 
+  $json.messages.length > 8 
+    ? $('Normaliza').item.json.message.message_id
+    : JSON.parse($json.messages.first()).message_id
+}}
+is not equal to
+{{ $('Normaliza').item.json.message.message_id }}
+Rename Output
+Output Name = faz nada
+# proteção de varias mensagens
+***************************************************************
+{{ JSON.parse($json.messages.last()).timestamp }}
+is before
+{{ $now.minus(8.'seconds') }}
+Rename Output = {{ true }}
+Output Name = prosseguir
+# 
+***************************************************************
+Options
+Fallback Output = extra output
+Rename Fallback Output = esperar
+```
+
+4. No Operation, do nothing2
+
+5. Redis2 deleta os dados
+- Credential to connect with: Redis Api
+- Operation: DELETE
+
+```bash
+fx: List = 558399126797_buf
+{{ $('Normaliza').item.json.message.chat_id.toString() }}_buffer
+```
+
+6. Wait1
+```bash
+Resume: after time interval
+Wait Amount: 5,00
+Wait Unit: seconds
+```
+
+7. Empacota
+- Mode: Manual Mapping
+- Fields to Set
+```bash
+String:messages = Olá
+{{ $json.messages.map(buffer => JSON.parse(buffer).message).join('\n') }}
+```
