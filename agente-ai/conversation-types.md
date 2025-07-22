@@ -104,6 +104,32 @@ String: mensagem = Olá
 ```
 - No Operation, do nothing1
 
+### Texto App
+
+1. Texto App
+- Mode: Manual Mapping
+- Fields to Set
+```bash
+String: telefone 
+{{ $('Webhook').item.json.body.data.key.remoteJid }}
+***************************************************************
+String: mensagem 
+{{ $('Webhook').item.json.body.data.message.conversation }}
+```
+- No Operation, do nothing1
+
+2. Filta Msg App
+- Mode: Manual Mapping
+- Fields to Set
+```bash
+String: telefone = 558399126797@s.whatsapp.net
+{{ $('Webhook').item.json.body.data.key.remoteJid }}
+***************************************************************
+String: mensagem = Olá
+{{ $('Webhook').item.json.body.data.message.conversation }}
+```
+- No Operation, do nothing1
+
 ### Envio de Imagens
 
 ```bash
